@@ -1,13 +1,12 @@
 package com.example.springsecuritytraining.configuration;
 
-import com.example.springsecuritytraining.domain.ApiUser;
-import com.example.springsecuritytraining.service.JwtGenerator;
+import com.example.springsecuritytraining.jwt.JwtGenerator;
+import com.nimbusds.jose.JOSEException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -16,7 +15,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Date;
 
 @RequiredArgsConstructor
@@ -38,7 +36,13 @@ public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFi
         User user = (User) authResult.getPrincipal();
         //Collection<GrantedAuthority> authorities = (Collection<GrantedAuthority>) authResult.getAuthorities();
         Date expiresAt =  new Date(System.currentTimeMillis()+ 10*60*1000);
-        String accessToken =  jwtGenerator.createJwtToken(user, expiresAt, request.getRequestURL().toString());
+        String accessToken = null;
+        try {
+            accessToken = jwtGenerator.createJwtToken(user, expiresAt, request.getRequestURL().toString());
+        } catch (JOSEException e) {
+            e.printStackTrace();
+        }
+        // String accessToken = jwtGenerator.buildToken();
         response.setHeader("access_token", accessToken);
     }
     
