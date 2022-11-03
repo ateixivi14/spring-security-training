@@ -1,7 +1,8 @@
 package com.example.springsecuritytraining.configuration;
 
-import com.example.springsecuritytraining.service.JwtGenerator;
-import com.nimbusds.jose.proc.SecurityContext;
+import com.example.springsecuritytraining.jwt.JwtGenerator;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jwt.JWTClaimsSet;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -15,6 +16,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.List;
 
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
@@ -32,12 +34,18 @@ public class CustomAuthorizationFilter extends OncePerRequestFilter {
         }
         else {
             String authorizationHeader =  request.getHeader(AUTHORIZATION);
-            Claims claims = jwtGenerator.verifyJWT(authorizationHeader);
-            String username = claims.getSubject();
-            List<GrantedAuthority> authorities = AuthorityUtils.createAuthorityList(claims.get(AUTHORITIES_KEY).toString());
-            UsernamePasswordAuthenticationToken authenticationToken =  new UsernamePasswordAuthenticationToken(username, null, authorities);
-            SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-            filterChain.doFilter(request, response);
+            try {
+                JWTClaimsSet claims  = jwtGenerator.verifyJWT(authorizationHeader);
+                String username = claims.getSubject();
+                String roles = String.join(",", (List<String>) claims.getClaims().get(AUTHORITIES_KEY));
+                List<GrantedAuthority> authorities = AuthorityUtils.createAuthorityList(roles);
+                UsernamePasswordAuthenticationToken authenticationToken =  new UsernamePasswordAuthenticationToken(username, null, authorities);
+                SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                filterChain.doFilter(request, response);
+
+            } catch (JOSEException | ParseException e) {
+                e.printStackTrace();
+            }
         }
 
     }
